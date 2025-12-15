@@ -1,0 +1,68 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Currency {
+  USD
+}
+
+enum TransactionType {
+  DEPOSIT
+  TRANSF_IN
+  TRANS_OUT
+}
+
+model Wallet {
+  id              String         @id @default(uuid())
+  balance         Decimal        @db.Decimal(10, 2) @default(0)
+  currency        Currency       @default(USD)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  transactions Transactions[]
+  
+  transfersSent Transfers[] @relation("SentTransfers")
+  transfersReceived Transfers[] @relation("ReceivedTransfers")
+}
+
+model Transactions {
+  id        String   @id @default(uuid())
+
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+
+  amount    Decimal  @db.Decimal(10, 2)
+  type      TransactionType
+
+  transferId String? @unique()
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  idempotencyKey String? @unique()
+}
+
+
+model Transfers{
+  id String @id @default(uuid())
+
+  amount Decimal @db.Decimal(10, 2)
+
+  sendingWalletId String
+  sendingWallet Wallet @relation(fields: [sendingWalletId], references: [id], name: "SentTransfers")
+
+  receivingWalletId String
+  receivingWallet Wallet @relation(fields: [receivingWalletId], references: [id], name: "ReceivedTransfers")
+
+  idempotencyKey String @unique()
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+}
+
