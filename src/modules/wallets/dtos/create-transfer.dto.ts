@@ -1,5 +1,5 @@
-import { IsNumber, IsUUID, Max, Min } from 'class-validator';
-import { MAX_ALLOWED_AMMOUNT, MIN_AMOUNT } from '../../../utils/constants';
+import { IsNumber, IsPositive, IsUUID, Max } from 'class-validator';
+import { MAX_ALLOWED_AMMOUNT } from '../../../utils/constants';
 import { Transform } from 'class-transformer';
 
 export class CreateTransferDto {
@@ -16,7 +16,7 @@ export class CreateTransferDto {
       message: 'Invalid amount',
     },
   )
-  @Min(MIN_AMOUNT, { message: 'Amount must be greater than 0' })
+  @IsPositive({ message: 'Amount must be greater than 0.' })
   @Max(MAX_ALLOWED_AMMOUNT, {
     message: `The maximum allowed amount is ${MAX_ALLOWED_AMMOUNT.toLocaleString()}.`,
   })

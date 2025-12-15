@@ -1,0 +1,302 @@
+openapi: 3.0.3
+info:
+  title: Novacrusts Wallet Service API
+  version: 1.0.0
+  description: API for managing wallets and transactions
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+components:
+  schemas:
+    Wallet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: '123e4567-e89b-12d3-a456-426614174000'
+        balance:
+          type: decimal
+          multipleOf: 0.01
+          example: 1000.51
+        currency:
+          type: string
+          example: 'USD'
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: decimal
+          multipleOf: 0.01
+          example: 1000.51
+        type:
+          type: string
+          enum: [DEPOSIT, TRANS_OUT, TRANS_IN]
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateDepositDto:
+      type: object
+      required:
+        - idempotencyKey
+        - amount
+      properties:
+        idempotencyKey:
+          type: string
+          format: uuid
+          description: Unique key to prevent duplicate deposits
+        amount:
+          type: decimal
+          multipleOf: 0.01
+          example: 1000.51
+          description: Amount to deposit (2 decimal places max)
+
+    CreateTransferDto:
+      type: object
+      required:
+        - idempotencyKey
+        - amount
+        - receivingWalletId
+      properties:
+        idempotencyKey:
+          type: string
+          format: uuid
+          description: Unique key to prevent duplicate transfers
+        amount:
+          type: decimal
+          multipleOf: 0.01
+          example: 1000.51
+          description: Amount to transfer (2 decimal places max)
+        receivingWalletId:
+          type: string
+          format: uuid
+          description: ID of the receiving wallet
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          minimum: 400
+          maximum: 500
+        message:
+          type: string
+        error:
+          type: string
+
+paths:
+  /wallets:
+    post:
+      tags:
+        - Wallets
+      summary: Create a new wallet
+      responses:
+        '200':
+          description: Wallet created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: Internal server error
+                  error:
+                    type: Internal server error
+
+  /wallets/{walletId}:
+    get:
+      tags:
+        - Wallets
+      summary: Get wallet details
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Wallet details retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Wallet'
+                  - type: object
+                    properties:
+                      transactions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Wallet does not exist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: Wallet does not exist
+                  error:
+                    type: string
+                    message: Not Found Error
+        '400':
+          description: Invalid wallet ID format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: Invalid walletId
+                  error:
+                    type: string
+                    example: Bad Request Error
+
+  /wallets/{walletId}/deposits:
+    post:
+      tags:
+        - Transactions
+      summary: Create a deposit
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDepositDto'
+      responses:
+        '200':
+          description: Deposit successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'success'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: Invalid walletId
+                  error:
+                    type: string
+                    example: Bad Request Error
+        '404':
+          description: Wallet does not exist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: Wallet does not exist
+                  error:
+                    type: string
+                    example: Not Found Error
+
+  /wallets/{walletId}/transfers:
+    post:
+      tags:
+        - Transactions
+      summary: Transfer money to another wallet
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferDto'
+      responses:
+        '200':
+          description: Transfer successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'success'
+        '400':
+          description: Invalid request (e.g., insufficient funds, same wallet)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: Insufficient Funds
+                  error:
+                    type: string
+                    example: Bad Request Error
+        '404':
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                  error:
+                    type: string
+                    example: Not Found Error

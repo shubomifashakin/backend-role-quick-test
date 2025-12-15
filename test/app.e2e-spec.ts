@@ -93,6 +93,14 @@ describe('AppController (e2e)', () => {
       expect(req.status).toBe(400);
     });
 
+    it('/wallets/:walletId/deposits (POST): it should fail to deposit because the amount is O', async () => {
+      const req = await request(app.getHttpServer())
+        .post(`/wallets/${walletId}/deposits`)
+        .send({ idempotencyKey: uuid(), amount: 0 });
+
+      expect(req.status).toBe(400);
+    });
+
     it('/wallets/:walletId/deposits (POST): it should successfully deposit money into the sending account', async () => {
       const req = await request(app.getHttpServer())
         .post(`/wallets/${walletId}/deposits`)
