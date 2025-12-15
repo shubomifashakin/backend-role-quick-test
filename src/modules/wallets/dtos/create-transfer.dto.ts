@@ -1,10 +1,15 @@
 import { IsNumber, IsUUID, Max, Min } from 'class-validator';
 import { MAX_ALLOWED_AMMOUNT, MIN_AMOUNT } from '../../../utils/constants';
+import { Transform } from 'class-transformer';
 
 export class CreateTransferDto {
   @IsUUID('4', { message: 'Invalid idempotencyKey' })
   idempotencyKey: string;
 
+  @Transform(({ value }) =>
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    typeof value === 'string' ? parseFloat(value) : value,
+  )
   @IsNumber(
     { maxDecimalPlaces: 2 },
     {
